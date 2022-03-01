@@ -17,7 +17,7 @@ type ApiInfo struct {
 	Produces    []string       `json:"produces" bson:"produces"`
 	Tags        []string       `json:"tags" bson:"tags"`
 	Summary     string         `json:"summary" bson:"summary"`
-	Parameters  []ApiParameter `json:"parameters" bson:"parameters"`
+	Parameters  []ApiParameter `json:"parameters,omitempty" bson:"parameters,omitempty"`
 	Responses   struct {
 		Field1 struct {
 			Description string `json:"description" bson:"description"`
