@@ -43,7 +43,6 @@ func main() {
 		Handler: engine,
 	}
 
-	//common.PrintLogo()
 	fmt.Println("|-----------------------------------|")
 	fmt.Println("|      通用微服务网关MGate 1.0.0      |")
 	fmt.Println("|-----------------------------------|")
@@ -52,11 +51,13 @@ func main() {
 	fmt.Println("|-----------------------------------|")
 	fmt.Println("")
 
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server listen: " + err.Error())
-		}
-	}()
+	if config.GetConfigString("go.application.port") != "" {
+		go func() {
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("HTTP server listen: " + err.Error())
+			}
+		}()
+	}
 
 	if config.GetConfigString("go.application.cert") != "" {
 		go func() {

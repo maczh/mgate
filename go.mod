@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/ekyoung/gin-nice-recovery v0.0.0-20160510022553-1654dca486db
 	github.com/gin-gonic/gin v1.7.7
+	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a
 	github.com/maczh/gintool v1.0.1
 	github.com/maczh/logs v1.0.2
 	github.com/maczh/mgcall v1.0.1
@@ -78,7 +79,6 @@ require (
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
-	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a // indirect
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/maczh/mgcache v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
