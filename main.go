@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/maczh/logs"
 	config "github.com/maczh/mgconfig"
 	"github.com/sadlil/gologger"
 	"net/http"
@@ -37,6 +38,10 @@ func main() {
 		Addr:    ":" + config.GetConfigString("go.application.port"),
 		Handler: engine,
 	}
+	serverSsl := &http.Server{
+		Addr:    ":" + config.GetConfigString("go.application.port_ssl"),
+		Handler: engine,
+	}
 
 	//common.PrintLogo()
 	fmt.Println("|-----------------------------------|")
@@ -52,6 +57,16 @@ func main() {
 			logger.Error("HTTP server listen: " + err.Error())
 		}
 	}()
+
+	if config.GetConfigString("go.application.cert") != "" {
+		go func() {
+			var err error
+			err = serverSsl.ListenAndServeTLS(path+"/"+config.GetConfigString("go.application.cert"), path+"/"+config.GetConfigString("go.application.key"))
+			if err != nil && err != http.ErrServerClosed {
+				logs.Error("HTTPS server listen: {}", err.Error())
+			}
+		}()
+	}
 
 	// 等待中断信号以优雅地关闭服务器（设置 5 秒的超时时间）
 	signalChan := make(chan os.Signal)
