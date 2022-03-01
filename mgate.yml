@@ -1,0 +1,32 @@
+go:
+  application:
+    name: mgate
+    port: 8088
+  config:
+    server: http://xxx.xxx.xxx.xxx:8848/
+    server_type: nacos
+    env: test
+    type: .yml
+    mid: -go-
+    used: nacos,mongodb
+    prefix:
+      mysql: mysql
+      mongodb: mongo-mgate
+      redis: redis
+      ssdb: ssdb
+      rabbitmq: rabbitmq
+      nacos: nacos
+      influxdb: influxdb
+  log:
+    req: mGatewayApiRequestLog
+  logger:
+    level: debug
+    out: console,file
+    file: /opt/logs/mgate
+api:
+  collection: mgGatewayConfig
+swagger:
+  info:
+    title: 测试通用API网关
+    description: 测试通用网关
+    version: "1.0.0(mgate)"
