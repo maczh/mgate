@@ -2,6 +2,9 @@ go:
   application:
     name: mgate
     port: 8088
+#    port_ssl: 8089
+#    cert: certs/gate.pem
+#    key: certs/gate.key
   config:
     server: http://xxx.xxx.xxx.xxx:8848/
     server_type: nacos
