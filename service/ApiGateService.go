@@ -82,7 +82,7 @@ func Route(c *gin.Context) mgresult.Result {
 		}
 	}
 	if err != nil {
-		return *mgresult.Error(-1, apiPath+"路由失败:"+err.Error())
+		return mgresult.Error(-1, apiPath+"路由失败:"+err.Error())
 	}
 	var result mgresult.Result
 	utils.FromJSON(resp, &result)

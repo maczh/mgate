@@ -35,7 +35,7 @@ func setupRouter() *gin.Engine {
 
 	//设置404返回的内容
 	engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusOK, *mgresult.Error(-1, "请求的方法不存在"))
+		c.JSON(http.StatusOK, mgresult.Error(-1, "请求的方法不存在"))
 	})
 
 	//从数据库加载网关API配置
@@ -78,5 +78,5 @@ func setupRouter() *gin.Engine {
 }
 
 func recoveryHandler(c *gin.Context, err interface{}) {
-	c.JSON(http.StatusOK, *mgresult.Error(-1, "系统异常，请联系客服"))
+	c.JSON(http.StatusOK, mgresult.Error(-1, "系统异常，请联系客服"))
 }

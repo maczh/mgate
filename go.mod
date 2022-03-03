@@ -6,7 +6,7 @@ require (
 	github.com/ekyoung/gin-nice-recovery v0.0.0-20160510022553-1654dca486db
 	github.com/gin-gonic/gin v1.7.7
 	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a
-	github.com/maczh/gintool v1.0.1
+	github.com/maczh/gintool v1.0.2
 	github.com/maczh/logs v1.0.2
 	github.com/maczh/mgcall v1.0.1
 	github.com/maczh/mgconfig v1.0.5

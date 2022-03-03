@@ -18,7 +18,7 @@ func AddApiWithSwagger(apiPath, service, uri string, engine *gin.Engine) mgresul
 	resp, err := mgcall.Get(service, "/docs/doc.json", nil)
 	if err != nil {
 		logs.Error("{}的swagger文档无法访问")
-		return *mgresult.Error(-1, service+"的swagger文档无法访问")
+		return mgresult.Error(-1, service+"的swagger文档无法访问")
 	}
 	swaggerDocs := model.SwaggerDocument{}
 	utils.FromJSON(resp, &swaggerDocs)
@@ -55,9 +55,9 @@ func AddApiWithSwagger(apiPath, service, uri string, engine *gin.Engine) mgresul
 				c.JSON(http.StatusOK, result)
 			})
 		}
-		return *mgresult.Success(nil)
+		return mgresult.Success(nil)
 	} else {
-		return *mgresult.Error(-1, "添加新网关路由失败：目标服务接口不存在")
+		return mgresult.Error(-1, "添加新网关路由失败：目标服务接口不存在")
 	}
 }
 
@@ -117,7 +117,7 @@ func AddApi(apiPath, service, uri, method, description, summary, consume, produc
 			c.JSON(http.StatusOK, result)
 		})
 	}
-	return *mgresult.Success(nil)
+	return mgresult.Success(nil)
 }
 
 func GetApiDocsJson() model.SwaggerDocument {
