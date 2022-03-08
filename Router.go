@@ -56,7 +56,7 @@ func setupRouter() *gin.Engine {
 	//添加管理接口
 	engine.POST("/admin/add/swagger", func(c *gin.Context) {
 		params := utils.GinParamMap(c)
-		c.JSON(http.StatusOK, service.AddApiWithSwagger(params["apiPath"], params["service"], params["uri"], engine))
+		c.JSON(http.StatusOK, service.AddApiWithSwagger(params["apiPath"], params["service"], params["uri"], params["withHeader"], engine))
 	})
 
 	engine.POST("/admin/add/api", func(c *gin.Context) {
@@ -64,6 +64,7 @@ func setupRouter() *gin.Engine {
 		c.JSON(http.StatusOK, service.AddApi(params["apiPath"],
 			params["service"],
 			params["uri"],
+			params["withHeader"],
 			params["method"],
 			params["description"],
 			params["summary"],

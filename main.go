@@ -43,13 +43,13 @@ func main() {
 		Handler: engine,
 	}
 
-	fmt.Println("|-----------------------------------|")
-	fmt.Println("|      通用微服务网关MGate 1.0.0      |")
-	fmt.Println("|-----------------------------------|")
-	fmt.Println("|  Go Http Server Start Successful  |")
-	fmt.Println("|    Port:" + config.GetConfigString("go.application.port") + "     Pid:" + fmt.Sprintf("%d", os.Getpid()) + "        |")
-	fmt.Println("|-----------------------------------|")
-	fmt.Println("")
+	logs.Info("|-----------------------------------|")
+	logs.Info("|      通用微服务网关MGate 1.0.0      |")
+	logs.Info("|-----------------------------------|")
+	logs.Info("|  Go Http Server Start Successful  |")
+	logs.Info("|    Port:" + config.GetConfigString("go.application.port") + "     Pid:" + fmt.Sprintf("%d", os.Getpid()) + "        |")
+	logs.Info("|-----------------------------------|")
+	logs.Info("")
 
 	if config.GetConfigString("go.application.port") != "" {
 		go func() {

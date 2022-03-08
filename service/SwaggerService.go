@@ -14,7 +14,7 @@ import (
 
 var swaggerDocuments model.SwaggerDocument
 
-func AddApiWithSwagger(apiPath, service, uri string, engine *gin.Engine) mgresult.Result {
+func AddApiWithSwagger(apiPath, service, uri, withHeader string, engine *gin.Engine) mgresult.Result {
 	resp, err := mgcall.Get(service, "/docs/doc.json", nil)
 	if err != nil {
 		logs.Error("{}的swagger文档无法访问")
@@ -25,9 +25,10 @@ func AddApiWithSwagger(apiPath, service, uri string, engine *gin.Engine) mgresul
 	if doc, ok := swaggerDocs.Paths[uri]; ok {
 		gatewayApi := model.GatewayApi{
 			ServiceApi: model.ServiceApi{
-				Api:     apiPath,
-				Service: service,
-				Uri:     uri,
+				Api:        apiPath,
+				Service:    service,
+				Uri:        uri,
+				WithHeader: withHeader == "true",
 			},
 			Swagger: doc,
 		}
@@ -61,7 +62,7 @@ func AddApiWithSwagger(apiPath, service, uri string, engine *gin.Engine) mgresul
 	}
 }
 
-func AddApi(apiPath, service, uri, method, description, summary, consume, produce, tag, parameters string, engine *gin.Engine) mgresult.Result {
+func AddApi(apiPath, service, uri, withHeader, method, description, summary, consume, produce, tag, parameters string, engine *gin.Engine) mgresult.Result {
 	if method == "" {
 		method = "post"
 	}
@@ -87,9 +88,10 @@ func AddApi(apiPath, service, uri, method, description, summary, consume, produc
 	doc.Responses.Field1.Schema.Type = "string"
 	gatewayApi := model.GatewayApi{
 		ServiceApi: model.ServiceApi{
-			Api:     apiPath,
-			Service: service,
-			Uri:     uri,
+			Api:        apiPath,
+			Service:    service,
+			Uri:        uri,
+			WithHeader: withHeader == "true",
 		},
 		Swagger: model.ApiDocument{method: doc},
 	}
@@ -147,6 +149,13 @@ func addAdminApiSwaggerDocs() {
 			Name:        "uri",
 			In:          "formData",
 			Required:    true,
+		},
+		model.ApiParameter{
+			Type:        "string",
+			Description: "是否透传Header，true或false",
+			Name:        "withHeader",
+			In:          "formData",
+			Required:    false,
 		},
 	}
 	doc := model.ApiInfo{

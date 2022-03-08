@@ -45,6 +45,10 @@ func Route(c *gin.Context) mgresult.Result {
 	resp := ""
 	var err error
 	if api, ok := mgateApiInfo[apiPath]; ok {
+		headers := make(map[string]string)
+		if api.WithHeader {
+			c.BindHeader(&headers)
+		}
 		if post, f := api.Swagger["post"]; f {
 			switch post.Consumes[0] {
 			//支持文件上传网关接口
@@ -69,16 +73,16 @@ func Route(c *gin.Context) mgresult.Result {
 						files = append(files, file)
 					}
 				}
-				resp, err = mgcall.CallWithFiles(api.Service, api.Uri, utils.GinParamMap(c), files)
+				resp, err = mgcall.CallWithFilesHeader(api.Service, api.Uri, utils.GinParamMap(c), files, headers)
 			//普通POST微服务网关
 			case "application/x-www-form-urlencoded":
-				resp, err = mgcall.Call(api.Service, api.Uri, utils.GinParamMap(c))
+				resp, err = mgcall.CallWithHeader(api.Service, api.Uri, utils.GinParamMap(c), headers)
 			//默认
 			default:
-				resp, err = mgcall.Call(api.Service, api.Uri, utils.GinParamMap(c))
+				resp, err = mgcall.CallWithHeader(api.Service, api.Uri, utils.GinParamMap(c), headers)
 			}
 		} else if _, f = api.Swagger["get"]; f { //GET方法的网关
-			resp, err = mgcall.Get(api.Service, api.Uri, utils.GinParamMap(c))
+			resp, err = mgcall.GetWithHeader(api.Service, api.Uri, utils.GinParamMap(c), headers)
 		}
 	}
 	if err != nil {

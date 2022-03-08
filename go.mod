@@ -8,7 +8,7 @@ require (
 	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a
 	github.com/maczh/gintool v1.0.2
 	github.com/maczh/logs v1.0.2
-	github.com/maczh/mgcall v1.0.1
+	github.com/maczh/mgcall v1.0.2
 	github.com/maczh/mgconfig v1.0.5
 	github.com/maczh/mgtrace v1.0.0
 	github.com/maczh/utils v1.0.0
