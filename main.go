@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/maczh/logs"
 	"github.com/maczh/mgconfig"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,7 +63,7 @@ func main() {
 	if mgconfig.GetConfigString("go.application.port") != "" {
 		go func() {
 			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logger.Error("HTTP server listen: " + err.Error())
+				logs.Error("HTTP server listen: " + err.Error())
 			}
 		}()
 	}
