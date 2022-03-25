@@ -8,11 +8,11 @@ require (
 	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a
 	github.com/maczh/gintool v1.0.2
 	github.com/maczh/logs v1.0.2
-	github.com/maczh/mgcall v1.0.2
-	github.com/maczh/mgconfig v1.0.5
+	github.com/maczh/mgcall v1.0.4
+	github.com/maczh/mgconfig v1.0.8
+	github.com/maczh/mgerr v1.0.2
 	github.com/maczh/mgtrace v1.0.0
 	github.com/maczh/utils v1.0.0
-	github.com/sadlil/gologger v0.0.0-20180131031757-2507bf651df8
 	github.com/swaggo/gin-swagger v1.4.1
 	github.com/swaggo/swag v1.8.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
@@ -101,6 +101,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/sadlil/gologger v0.0.0-20180131031757-2507bf651df8 // indirect
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/silenceper/pool v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
@@ -121,7 +122,6 @@ require (
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/ini.v1 v1.42.0 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/b v1.0.0 // indirect
 )

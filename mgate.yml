@@ -26,6 +26,11 @@ go:
     level: debug
     out: console,file
     file: /opt/logs/mgate
+  i8n:
+    languages: zh-cn,en-us
+    json:
+      zh-cn: /opt/go/bin/errcodes/mgate.errcode.zh-cn.json
+      en-us: /opt/go/bin/errcodes/mgate.errcode.en-us.json
 api:
   collection: mgGatewayConfig
 swagger:

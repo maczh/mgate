@@ -4,7 +4,8 @@ import (
 	"github.com/ekyoung/gin-nice-recovery"
 	"github.com/gin-gonic/gin"
 	"github.com/maczh/gintool"
-	"github.com/maczh/gintool/mgresult"
+	"github.com/maczh/mgerr"
+	"github.com/maczh/mgerr/errcode"
 	"github.com/maczh/mgtrace"
 	"github.com/maczh/utils"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -29,13 +30,15 @@ func setupRouter() *gin.Engine {
 	engine.Use(gintool.SetRequestLogger())
 	//添加跨域处理
 	engine.Use(gintool.Cors())
+	//添加国际化支持
+	engine.Use(mgerr.RequestLanguage())
 
 	//处理全局异常
 	engine.Use(nice.Recovery(recoveryHandler))
 
 	//设置404返回的内容
 	engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusOK, mgresult.Error(-1, "请求的方法不存在"))
+		c.JSON(http.StatusOK, mgerr.ErrorResult(errcode.URI_NOT_FOUND))
 	})
 
 	//从数据库加载网关API配置
@@ -56,7 +59,7 @@ func setupRouter() *gin.Engine {
 	//添加管理接口
 	engine.POST("/admin/add/swagger", func(c *gin.Context) {
 		params := utils.GinParamMap(c)
-		c.JSON(http.StatusOK, service.AddApiWithSwagger(params["apiPath"], params["service"], params["uri"], params["withHeader"], engine))
+		c.JSON(http.StatusOK, service.AddApiWithSwagger(params["apiPath"], params["service"], params["uri"], params["withHeader"], params["tag"], engine))
 	})
 
 	engine.POST("/admin/add/api", func(c *gin.Context) {
@@ -79,5 +82,5 @@ func setupRouter() *gin.Engine {
 }
 
 func recoveryHandler(c *gin.Context, err interface{}) {
-	c.JSON(http.StatusOK, mgresult.Error(-1, "系统异常，请联系客服"))
+	c.JSON(http.StatusOK, mgerr.ErrorResult(errcode.SYSTEM_ERROR))
 }

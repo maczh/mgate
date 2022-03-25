@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/maczh/logs"
 	"github.com/maczh/mgconfig"
+	"github.com/maczh/mgerr"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,6 +41,9 @@ func main() {
 
 	//GIN的模式，生产环境可以设置成release
 	gin.SetMode("debug")
+
+	//国际化错误代码初始化
+	mgerr.Init()
 
 	engine := setupRouter()
 
