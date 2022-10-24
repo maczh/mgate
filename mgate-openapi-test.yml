@@ -1,0 +1,65 @@
+api:
+  authorization:
+    need: true
+    service: openapi-core
+    uri: /user/sign/verify
+    method: GET
+    params:
+      userId: userId
+      timestamp: timestamp
+      authorization: Authorization
+    response:
+      data: valid
+  gates: #暴露的服务
+    openapi-core:
+      service: openapi-core
+      prefix: /api/v1/core    #转出接口前缀
+      allow: #暴露的接口前缀
+        - path: /user     #如果全部接口暴露，只需要配一个path，值为/即可
+        - path: /order
+      block: #不转发的接口前缀
+        - path: /user/del    #隐藏掉部分接口
+          method: POST
+        - path: /order/**/detail
+          method: GET
+      unauthorized:  #免认证接口
+        - path: /user/sms/code/send
+          method: POST
+        - path: /user/login
+          method: POST
+    x-lang:
+      service: x-lang
+      prefix: /api/v2/xlang    #转出接口前缀
+      allow: #暴露的接口前缀
+        - path: /lang/string/js/list
+        - path: /lang/string/app/version
+      block:     #不转发的接口前缀
+      unauthorized:
+        - path: /lang/string/app/version
+          method: POST
+        - path: /lang/string/js/list
+          method: POST
+    openapi-admin:
+      service: openapi-admin
+      prefix: /api/v1/backend    #转出接口前缀
+      allow: #暴露的接口前缀
+        - path: /
+      block: #不转发的接口前缀
+      unauthorized:
+        - path: /login
+          method: POST
+  swagger:
+    show: true  #是否自动生成swagger文档
+    description: 测试openapi通用网关
+    title: openapi通用网关
+    version: api-gate(for openapi test v1.0.0)
+    tags:   #分组标签映射
+      openapi-gate:
+        USER-其他: 前台-用户-其他
+        订单: 前台-订单管理
+      x-lang:
+        语言: I18N
+      openapi-admin:
+        镜像管理: 后台-镜像管理
+        实例: 后台-实例管理
+        登录: 后台-登录

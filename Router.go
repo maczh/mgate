@@ -3,16 +3,18 @@ package main
 import (
 	"github.com/ekyoung/gin-nice-recovery"
 	"github.com/gin-gonic/gin"
-	"github.com/maczh/gintool"
-	"github.com/maczh/mgerr"
-	"github.com/maczh/mgerr/errcode"
-	"github.com/maczh/mgtrace"
-	"github.com/maczh/utils"
+	_ "github.com/maczh/mgate/docs"
+	"github.com/maczh/mgate/service"
+	"github.com/maczh/mgin/errcode"
+	"github.com/maczh/mgin/i18n"
+	"github.com/maczh/mgin/middleware/cors"
+	"github.com/maczh/mgin/middleware/postlog"
+	"github.com/maczh/mgin/middleware/trace"
+	"github.com/maczh/mgin/middleware/xlang"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
-	"mgate/docs"
-	"mgate/service"
 	"net/http"
+	"strings"
 )
 
 /**
@@ -24,63 +26,58 @@ func setupRouter() *gin.Engine {
 	engine := gin.Default()
 
 	//添加跟踪日志
-	engine.Use(mgtrace.TraceId())
+	engine.Use(trace.TraceId())
 
 	//设置接口日志
-	engine.Use(gintool.SetRequestLogger())
+	engine.Use(postlog.RequestLogger())
 	//添加跨域处理
-	engine.Use(gintool.Cors())
+	engine.Use(cors.Cors())
 	//添加国际化支持
-	engine.Use(mgerr.RequestLanguage())
+	engine.Use(xlang.RequestLanguage())
 
 	//处理全局异常
 	engine.Use(nice.Recovery(recoveryHandler))
 
 	//设置404返回的内容
 	engine.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusOK, mgerr.ErrorResult(errcode.URI_NOT_FOUND))
+		c.JSON(http.StatusOK, i18n.Error(errcode.URI_NOT_FOUND, errcode.UrlNotFound))
 	})
 
 	//从数据库加载网关API配置
-	service.LoadDataFromMongoDB()
+	service.Gate.Init()
+
 	//自动生成路由器
-	service.GenerateRoutes(engine)
-	//swag初始化
-	docs.Init()
-
-	//获取Swagger Json
-	//engine.GET("/docs/doc.json", func(c *gin.Context) {
-	//	c.JSON(http.StatusOK, service.GetApiDocsJson())
-	//})
-
-	//添加swagger支持
-	engine.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	//添加管理接口
-	engine.POST("/admin/add/swagger", func(c *gin.Context) {
-		params := utils.GinParamMap(c)
-		c.JSON(http.StatusOK, service.AddApiWithSwagger(params["apiPath"], params["service"], params["uri"], params["withHeader"], params["tag"], engine))
-	})
-
-	engine.POST("/admin/add/api", func(c *gin.Context) {
-		params := utils.GinParamMap(c)
-		c.JSON(http.StatusOK, service.AddApi(params["apiPath"],
-			params["service"],
-			params["uri"],
-			params["withHeader"],
-			params["method"],
-			params["description"],
-			params["summary"],
-			params["consume"],
-			params["produce"],
-			params["tag"],
-			params["parameters"],
-			engine))
+	engine.Any("/*action", func(c *gin.Context) {
+		if service.Gate.GateConfig.Api.Swagger.Show {
+			if c.Request.RequestURI == "/docs/doc.json" {
+				c.JSON(http.StatusOK, service.Swagger.Get())
+				return
+			}
+			if strings.HasPrefix(c.Request.RequestURI, "/docs/") {
+				ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+				return
+			}
+		}
+		if c.Request.RequestURI == "/favicon.ico" {
+			c.String(http.StatusOK, "")
+			return
+		}
+		if !service.Gate.CheckAuth(c) {
+			c.JSON(http.StatusOK, i18n.Error(errcode.AUTHENTICATION_FAILURE, "签名错误，接口访问授权失败"))
+			return
+		}
+		resp, err := service.Gate.ProxyTo(c)
+		if err != nil {
+			c.JSON(http.StatusOK, i18n.Error(errcode.SYSTEM_ERROR, err.Error()))
+			return
+		}
+		c.String(http.StatusOK, resp)
+		return
 	})
 
 	return engine
 }
 
 func recoveryHandler(c *gin.Context, err interface{}) {
-	c.JSON(http.StatusOK, mgerr.ErrorResult(errcode.SYSTEM_ERROR))
+	c.JSON(http.StatusOK, i18n.Error(errcode.SYSTEM_ERROR, errcode.SystemError))
 }

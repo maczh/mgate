@@ -1,40 +1,33 @@
 go:
   application:
-    name: mgate
-    port: 8088
+    name: mgate-openapi
+    port: 8087
+    debug: false
 #    port_ssl: 8089
 #    cert: certs/gate.pem
 #    key: certs/gate.key
   config:
-    server: http://xxx.xxx.xxx.xxx:8848/
+    server: http://xxx.xxx.xxx.xx:8848/
     server_type: nacos
     env: test
     type: .yml
-    mid: -go-
     used: nacos,mongodb
     prefix:
       mysql: mysql
-      mongodb: mongo-mgate
+      mongodb: mongo-openapi
       redis: redis
-      ssdb: ssdb
-      rabbitmq: rabbitmq
-      nacos: nacos
-      influxdb: influxdb
+      nacos: nacos-openapi
+  discovery:
+    registry: nacos                    #微服务的服务发现与注册中心类型 nacos,consul,默认是 nacos
+    callType: x-form                     #微服务调用参数模式 x-form,json,restful 三种模式可选
   log:
-    req: mGatewayApiRequestLog
+    req: MGateOpenAPIRequestLog
   logger:
     level: debug
     out: console,file
-    file: /opt/logs/mgate
-  i8n:
-    languages: zh-cn,en-us
-    json:
-      zh-cn: /opt/go/bin/errcodes/mgate.errcode.zh-cn.json
-      en-us: /opt/go/bin/errcodes/mgate.errcode.en-us.json
-api:
-  collection: mgGatewayConfig
-swagger:
-  info:
-    title: 测试通用API网关
-    description: 测试通用网关
-    version: "1.0.0(mgate)"
+    file: /opt/logs/mgate-openapi
+  xlang:
+    default: zh-cn
+    appName: mgate
+gate:
+  config: mgate-openapi

@@ -1,252 +1,152 @@
 package service
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/maczh/gintool/mgresult"
-	"github.com/maczh/logs"
-	"github.com/maczh/mgcall"
-	"github.com/maczh/mgconfig"
-	"github.com/maczh/utils"
-	"gopkg.in/mgo.v2/bson"
-	"mgate/model"
-	"net/http"
+	"github.com/maczh/mgate/model"
+	"github.com/maczh/mgin/client"
+	"github.com/maczh/mgin/logs"
+	"github.com/maczh/mgin/utils"
+	"strings"
 )
 
-var swaggerDocuments model.SwaggerDocument
+type swaggerService struct {
+	Doc *model.SwaggerDocument
+}
 
-func AddApiWithSwagger(apiPath, service, uri, withHeader, tag string, engine *gin.Engine) mgresult.Result {
-	resp, err := mgcall.Get(service, "/docs/doc.json", nil)
+var Swagger = &swaggerService{
+	Doc: new(model.SwaggerDocument),
+}
+
+func (s *swaggerService) Init(g *gateConfig) {
+	if !g.GateConfig.Api.Swagger.Show {
+		return
+	}
+	s.Doc.Title = g.GateConfig.Api.Swagger.Title
+	s.Doc.Description = g.GateConfig.Api.Swagger.Description
+	s.Doc.Version = g.GateConfig.Api.Swagger.Version
+	s.Doc.Info.Title = s.Doc.Title
+	s.Doc.Info.Description = s.Doc.Description
+	s.Doc.Info.Version = s.Doc.Version
+	s.Doc.Swagger = "2.0"
+	for service, _ := range g.GateConfig.Api.Gates {
+		s.addServiceSwagger(service, g)
+	}
+	logs.Info("swagger文档自动导入完成")
+}
+
+func (s *swaggerService) Get() model.SwaggerDocument {
+	return *s.Doc
+}
+
+func (s *swaggerService) addServiceSwagger(service string, g *gateConfig) {
+	resp, err := client.Get(service, "/docs/doc.json", nil)
 	if err != nil {
-		logs.Error("{}的swagger文档无法访问")
-		return mgresult.Error(-1, service+"的swagger文档无法访问")
+		logs.Error("{}的swagger文档无法访问", service)
+		return
 	}
 	swaggerDocs := model.SwaggerDocument{}
 	utils.FromJSON(resp, &swaggerDocs)
-	if doc, ok := swaggerDocs.Paths[uri]; ok {
-		if tag != "" {
-			if _, f := doc["post"]; f {
-				d := doc["post"]
-				d.Tags = []string{tag}
-				doc["post"] = d
-			}
-			if _, f := doc["get"]; f {
-				d := doc["get"]
-				d.Tags = []string{tag}
-				doc["get"] = d
-			}
+	//导入模型部分
+	if s.Doc.Definitions == nil && swaggerDocs.Definitions != nil {
+		s.Doc.Definitions = make(map[string]model.Model)
+	}
+	if swaggerDocs.Definitions != nil {
+		for k, v := range swaggerDocs.Definitions {
+			s.Doc.Definitions[k] = v
 		}
-		gatewayApi := model.GatewayApi{
-			ServiceApi: model.ServiceApi{
-				Api:        apiPath,
-				Service:    service,
-				Uri:        uri,
-				WithHeader: withHeader == "true",
-			},
-			Swagger: doc,
+	}
+	//导入路径数据
+	if s.Doc.Paths == nil {
+		s.Doc.Paths = make(map[string]model.ApiDocument)
+	}
+	cfg := g.GateConfig.Api.Gates[service]
+	tagsMap := g.GateConfig.Api.Swagger.Tags[service]
+	for path, api := range swaggerDocs.Paths {
+		method := getSwaggerApiMethod(api)
+		if checkPath(path, method, cfg.Allow, cfg.Block) {
+			doc := api[method]
+			//添加认证参数
+			if g.GateConfig.Api.Authorization.Need && !checkPath(path, method, cfg.Unauthorized, nil) {
+				if doc.Parameters == nil {
+					doc.Parameters = make([]model.ApiParameter, 0)
+				}
+				for param, _ := range g.GateConfig.Api.Authorization.Params {
+					has := false
+					for _, p := range doc.Parameters {
+						if param == p.Name {
+							has = true
+							break
+						}
+					}
+					if !has {
+						doc.Parameters = append(doc.Parameters, model.ApiParameter{
+							Type:        "string",
+							Description: param + "- 认证参数",
+							Name:        param,
+							In:          "header",
+							Required:    true,
+						})
+					}
+				}
+			}
+			//修改tags标签
+			for i, tag := range doc.Tags {
+				if tagsMap != nil && tagsMap[tag] != "" {
+					doc.Tags[i] = tagsMap[tag]
+				}
+			}
+			api[method] = doc
+			s.Doc.Paths[strings.TrimSuffix(cfg.Prefix, "/")+path] = api
+			logs.Info("导入{}的Swagger文档路径{}成功", service, path)
 		}
-		mgateApiInfo[apiPath] = gatewayApi
-		//添加swagger路径
-		swaggerDocuments.Paths[apiPath] = gatewayApi.Swagger
-		//保存入库
-		mgoDoc := model.GatewayApiDocument{}
-		err = mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).Find(bson.M{"api": apiPath}).One(&mgoDoc)
-		if err != nil || mgoDoc.Api == "" {
-			mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).Insert(gatewayApi)
+	}
+}
+
+func checkPath(path, method string, allows, blocks []model.PathConfig) bool {
+	method = strings.ToUpper(method)
+	allowed := false
+	for _, allow := range allows {
+		match := true
+		p := allow.Path
+		if strings.Contains(p, "**") {
+			strs := strings.Split(p, "**")
+			for _, str := range strs {
+				match = match && strings.Contains(path, str)
+			}
 		} else {
-			mgoDoc.GatewayApi = gatewayApi
-			mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).UpdateId(mgoDoc.Id, mgoDoc)
+			match = strings.HasPrefix(path, p)
 		}
-		//动态添加路由
-		if _, f := doc["post"]; f {
-			engine.POST(apiPath, func(c *gin.Context) {
-				result := Route(c)
-				c.JSON(http.StatusOK, result)
-			})
-		} else if _, f = doc["get"]; f {
-			engine.GET(apiPath, func(c *gin.Context) {
-				result := Route(c)
-				c.JSON(http.StatusOK, result)
-			})
+		if match && (allow.Method == "" || strings.ToUpper(allow.Method) == method) {
+			allowed = true
+			break
 		}
-		return mgresult.Success(nil)
-	} else {
-		return mgresult.Error(-1, "添加新网关路由失败：目标服务接口不存在")
 	}
+	if !allowed {
+		return false
+	}
+	if blocks == nil || len(blocks) == 0 {
+		return true
+	}
+	for _, block := range blocks {
+		match := true
+		p := block.Path
+		if strings.Contains(p, "**") {
+			strs := strings.Split(p, "**")
+			for _, str := range strs {
+				match = match && strings.Contains(path, str)
+			}
+		} else {
+			match = strings.HasPrefix(path, p)
+		}
+		if match && (block.Method == "" || strings.ToUpper(block.Method) == method) {
+			return false
+		}
+	}
+	return true
 }
 
-func AddApi(apiPath, service, uri, withHeader, method, description, summary, consume, produce, tag, parameters string, engine *gin.Engine) mgresult.Result {
-	if method == "" {
-		method = "post"
+func getSwaggerApiMethod(api model.ApiDocument) string {
+	for method, _ := range api {
+		return method
 	}
-	if consume == "" {
-		consume = "application/x-www-form-urlencoded"
-	}
-	if produce == "" {
-		produce = "application/json"
-	}
-	var params []model.ApiParameter
-	{
-	}
-	utils.FromJSON(parameters, &params)
-	doc := model.ApiInfo{
-		Description: description,
-		Consumes:    []string{consume},
-		Produces:    []string{produce},
-		Tags:        []string{tag},
-		Summary:     summary,
-		Parameters:  params,
-	}
-	doc.Responses.Field1.Description = "ok"
-	doc.Responses.Field1.Schema.Type = "string"
-	gatewayApi := model.GatewayApi{
-		ServiceApi: model.ServiceApi{
-			Api:        apiPath,
-			Service:    service,
-			Uri:        uri,
-			WithHeader: withHeader == "true",
-		},
-		Swagger: model.ApiDocument{method: doc},
-	}
-	mgateApiInfo[apiPath] = gatewayApi
-	//添加swagger路径
-	swaggerDocuments.Paths[apiPath] = gatewayApi.Swagger
-	//保存入库
-	mgoDoc := model.GatewayApiDocument{}
-	err := mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).Find(bson.M{"api": apiPath}).One(&mgoDoc)
-	if err != nil || mgoDoc.Api == "" {
-		mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).Insert(gatewayApi)
-	} else {
-		mgoDoc.GatewayApi = gatewayApi
-		mgconfig.Mgo.C(mgconfig.GetConfigString("api.collection")).UpdateId(mgoDoc.Id, mgoDoc)
-	}
-	//动态添加路由
-	if method == "post" {
-		engine.POST(apiPath, func(c *gin.Context) {
-			result := Route(c)
-			c.JSON(http.StatusOK, result)
-		})
-	} else if method == "get" {
-		engine.GET(apiPath, func(c *gin.Context) {
-			result := Route(c)
-			c.JSON(http.StatusOK, result)
-		})
-	}
-	return mgresult.Success(nil)
-}
-
-func GetApiDocsJson() model.SwaggerDocument {
-	return swaggerDocuments
-}
-
-func addAdminApiSwaggerDocs() {
-	//添加 AddApiWithSwagger 接口
-	params := []model.ApiParameter{
-		model.ApiParameter{
-			Type:        "string",
-			Description: "网关接口路径",
-			Name:        "apiPath",
-			In:          "formData",
-			Required:    true,
-		},
-		model.ApiParameter{
-			Type:        "string",
-			Description: "微服务名称",
-			Name:        "service",
-			In:          "formData",
-			Required:    true,
-		},
-		model.ApiParameter{
-			Type:        "string",
-			Description: "在微服务端接口路径",
-			Name:        "uri",
-			In:          "formData",
-			Required:    true,
-		},
-		model.ApiParameter{
-			Type:        "string",
-			Description: "是否透传Header，true或false",
-			Name:        "withHeader",
-			In:          "formData",
-			Required:    false,
-		},
-		model.ApiParameter{
-			Type:        "string",
-			Description: "重新定义分组名称",
-			Name:        "tag",
-			In:          "formData",
-			Required:    false,
-		},
-	}
-	doc := model.ApiInfo{
-		Description: "从微服务swagger添加一个网关映射",
-		Consumes:    []string{"application/x-www-form-urlencoded"},
-		Produces:    []string{"application/json"},
-		Tags:        []string{"网关管理"},
-		Summary:     "从带swagger文档的微服务网关添加一个接口映射",
-		Parameters:  params,
-	}
-	doc.Responses.Field1.Description = "ok"
-	doc.Responses.Field1.Schema.Type = "string"
-	swaggerDocuments.Paths["/admin/add/swagger"] = model.ApiDocument{"post": doc}
-	//添加AddApi接口
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "http方法，post或get",
-		Name:        "method",
-		In:          "formData",
-		Required:    false,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "接口详情描述",
-		Name:        "description",
-		In:          "formData",
-		Required:    true,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "接口描述简述",
-		Name:        "summary",
-		In:          "formData",
-		Required:    true,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "接口content-type,默认为application/x-www-form-urlencoded",
-		Name:        "consume",
-		In:          "formData",
-		Required:    false,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "接口返回content-Type,默认为application/json",
-		Name:        "produce",
-		In:          "formData",
-		Required:    false,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "分组标签",
-		Name:        "tag",
-		In:          "formData",
-		Required:    true,
-	})
-	params = append(params, model.ApiParameter{
-		Type:        "string",
-		Description: "接口参数JSON,包含name,type,in,required,description等5个参数",
-		Name:        "parameters",
-		In:          "formData",
-		Required:    true,
-	})
-	doc1 := model.ApiInfo{
-		Description: "直接添加一个网关映射",
-		Consumes:    []string{"application/x-www-form-urlencoded"},
-		Produces:    []string{"application/json"},
-		Tags:        []string{"网关管理"},
-		Summary:     "微服务网关直接添加一个接口映射",
-		Parameters:  params,
-	}
-	doc1.Responses.Field1.Description = "ok"
-	doc1.Responses.Field1.Schema.Type = "string"
-	swaggerDocuments.Paths["/admin/add/api"] = model.ApiDocument{"post": doc1}
+	return ""
 }

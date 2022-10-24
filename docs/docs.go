@@ -3,12 +3,12 @@
 package docs
 
 import (
-	"github.com/maczh/utils"
+	"github.com/maczh/mgate/service"
+	"github.com/maczh/mgin/utils"
 	"github.com/swaggo/swag"
-	"mgate/service"
 )
 
-var apiJson = service.GetApiDocsJson()
+var apiJson = service.Swagger.Get()
 
 type swaggerInfo struct {
 	Version     string
@@ -32,7 +32,7 @@ var SwaggerInfo = swaggerInfo{
 type s struct{}
 
 func (s *s) ReadDoc() string {
-	return utils.ToJSON(service.GetApiDocsJson())
+	return utils.ToJSON(service.Swagger.Get())
 }
 
 func Init() {

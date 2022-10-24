@@ -5,9 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/maczh/logs"
-	"github.com/maczh/mgconfig"
-	"github.com/maczh/mgerr"
+	"github.com/maczh/mgin"
+	"github.com/maczh/mgin/config"
+	"github.com/maczh/mgin/i18n"
+	"github.com/maczh/mgin/logs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +19,7 @@ import (
 )
 
 //@title	通用微服务网关
-//@version 	1.0.0(mgate)
+//@version 	1.0.0(api-gate)
 //@description	通用微服务网关
 
 //初始化命令行参数
@@ -36,35 +37,35 @@ func parseArgs() string {
 func main() {
 	//初始化配置，自动连接数据库和Nacos服务注册
 	configFile := parseArgs()
-	mgconfig.InitConfig(configFile)
+	mgin.Init(configFile)
 	path, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
 	//GIN的模式，生产环境可以设置成release
 	gin.SetMode("debug")
 
 	//国际化错误代码初始化
-	mgerr.Init()
+	i18n.Init()
 
 	engine := setupRouter()
 
 	server := &http.Server{
-		Addr:    ":" + mgconfig.GetConfigString("go.application.port"),
+		Addr:    fmt.Sprintf(":%d", config.Config.App.Port),
 		Handler: engine,
 	}
 	serverSsl := &http.Server{
-		Addr:    ":" + mgconfig.GetConfigString("go.application.port_ssl"),
+		Addr:    fmt.Sprintf(":%d", config.Config.App.PortSSL),
 		Handler: engine,
 	}
 
 	logs.Info("|-----------------------------------|")
-	logs.Info("|      通用微服务网关MGate 1.0.0      |")
+	logs.Info("|      通用微服务网关APIGate 1.0.0      |")
 	logs.Info("|-----------------------------------|")
 	logs.Info("|  Go Http Server Start Successful  |")
-	logs.Info("|    Port:" + mgconfig.GetConfigString("go.application.port") + "     Pid:" + fmt.Sprintf("%d", os.Getpid()) + "        |")
+	logs.Info("|    Port:" + config.Config.GetConfigString("go.application.port") + "     Pid:" + fmt.Sprintf("%d", os.Getpid()) + "        |")
 	logs.Info("|-----------------------------------|")
 	logs.Info("")
 
-	if mgconfig.GetConfigString("go.application.port") != "" {
+	if config.Config.App.Port > 0 {
 		go func() {
 			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logs.Error("HTTP server listen: " + err.Error())
@@ -72,10 +73,10 @@ func main() {
 		}()
 	}
 
-	if mgconfig.GetConfigString("go.application.cert") != "" {
+	if config.Config.App.Cert != "" {
 		go func() {
 			var err error
-			err = serverSsl.ListenAndServeTLS(path+"/"+mgconfig.GetConfigString("go.application.cert"), path+"/"+mgconfig.GetConfigString("go.application.key"))
+			err = serverSsl.ListenAndServeTLS(path+"/"+config.Config.App.Cert, path+"/"+config.Config.App.Key)
 			if err != nil && err != http.ErrServerClosed {
 				logs.Error("HTTPS server listen: {}", err.Error())
 			}
@@ -88,7 +89,7 @@ func main() {
 	sig := <-signalChan
 	logs.Error("Get Signal:" + sig.String())
 	logs.Error("Shutdown Server ...")
-	mgconfig.SafeExit()
+	mgin.MGin.SafeExit()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {

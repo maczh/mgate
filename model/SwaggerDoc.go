@@ -9,6 +9,9 @@ type ApiParameter struct {
 	Name        string `json:"name" bson:"name"`
 	In          string `json:"in" bson:"in"`
 	Required    bool   `json:"required" bson:"required"`
+	Schema      struct {
+		Ref string `json:"$ref,omitempty" bson:"$ref,omitempty"`
+	} `json:"schema,omitempty" bson:"schema,omitempty"`
 }
 
 type ApiInfo struct {
@@ -42,7 +45,19 @@ type SwaggerDocument struct {
 		} `json:"contact" bson:"contact"`
 		Version string `json:"version" bson:"version"`
 	} `json:"info" bson:"info"`
-	Host     string                 `json:"host" bson:"host"`
-	BasePath string                 `json:"basePath" bson:"basePath"`
-	Paths    map[string]ApiDocument `json:"paths" bson:"paths"`
+	Host        string                 `json:"host" bson:"host"`
+	BasePath    string                 `json:"basePath" bson:"basePath"`
+	Paths       map[string]ApiDocument `json:"paths" bson:"paths"`
+	Definitions map[string]Model       `json:"definitions,omitempty" bson:"definitions,omitempty"`
+}
+
+type Field struct {
+	Type        string `json:"type,omitempty" bson:"type,omitempty"`
+	Description string `json:"description" bson:"description"`
+	Ref         string `json:"$ref,omitempty" bson:"$ref,omitempty"`
+}
+
+type Model struct {
+	Type       string           `json:"type" bson:"type"`
+	Properties map[string]Field `json:"properties" bson:"properties"`
 }
